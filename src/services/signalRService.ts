@@ -1,29 +1,41 @@
 import * as signalR from "@microsoft/signalr";
+import type { Record } from "../types/Record";
 
 class SignalRService {
   private connection: signalR.HubConnection | null = null;
 
   async startConnection() {
-    this.connection =
-      new signalR.HubConnectionBuilder()
-        .withUrl("https://localhost:5001/notificationHub")
-        .withAutomaticReconnect()
-        .build();
+    if (this.connection) return;
 
-    await this.connection.start();
+    this.connection = new signalR.HubConnectionBuilder()
+      .withUrl("http://localhost:5187/notificationHub")
+      .configureLogging(signalR.LogLevel.Debug)
+      .withAutomaticReconnect()
+      .build();
 
-    console.log("Connected");
+    try {
+      console.log("Connecting...");
+      await this.connection.start();
+      console.log("SignalR Connected");
+    } catch (error) {
+      console.error("Connection Error:", error);
+    }
   }
 
-  onRecordUpdated(callback: any) {
+  onRecordUpdated(
+    callback: (record: Record) => void
+  ) {
     this.connection?.on(
       "RecordUpdated",
       callback
     );
   }
 
-  stopConnection() {
-    this.connection?.stop();
+  async stopConnection() {
+    if (this.connection) {
+    await this.connection.stop();
+    this.connection = null;
+  }
   }
 }
 
